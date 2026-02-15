@@ -1,122 +1,162 @@
 let officers = [];
-let extraOfficers = [];
+let extras = [];
+let ra_ro_list = [];
 
-function generateTimeSlots(shift){
-  let slots=[];
-  let start = shift==="morning" ? 600 : 1320;
-  for(let i=0;i<48;i++){
-    let total = start + i*15;
-    total = total % 1440;
-    let h = String(Math.floor(total/60)).padStart(2,"0");
-    let m = String(total%60).padStart(2,"0");
-    slots.push(h+m);
+function generateTimeline(shift){
+  let times = [];
+  let start = shift === "morning" ? 10 : 22;
+
+  for(let i=0;i<48;i++){  // 12h x 4 intervals per hour
+    let hour = (start + Math.floor(i/4)) % 24;
+    let min = (i%4)*15;
+    times.push(
+      String(hour).padStart(2,'0') +
+      String(min).padStart(2,'0')
+    );
   }
-  return slots;
+  return times;
 }
 
-function generateBase(){
-  officers=[];
-  let count = parseInt(document.getElementById("baseOfficers").value);
-  let operation=document.getElementById("operation").value;
-  let max = operation==="arrival"?40:36;
+function generateBaseRoster(){
+  officers = [];
+  let total = parseInt(document.getElementById("baseOfficers").value);
+  let shift = document.getElementById("shift").value;
 
-  if(count>max){
-    alert("Exceed max counters by "+(count-max));
-    return;
-  }
-
-  for(let i=1;i<=count;i++){
+  for(let i=1;i<=total;i++){
     officers.push({
-      name:"Officer"+i,
-      start:null,
-      end:null,
-      type:"base"
+      name: "Officer"+i,
+      type:"BASE",
+      start: shift==="morning"?"1000":"2200",
+      end: shift==="morning"?"2200":"1000",
+      breakTimes:[]
     });
   }
 
-  render();
+  autoAssignBreaks();
+  renderGrid();
 }
 
-function addRA(){
-  let name=document.getElementById("raName").value;
-  let time=document.getElementById("raTime").value.replace(":","");
+function autoAssignBreaks(){
+  let shift = document.getElementById("shift").value;
+
   officers.forEach(o=>{
-    if(o.name===name) o.start=time;
+    if(o.type==="BASE"){
+      if(shift==="morning"){
+        o.breakTimes = ["1300","1500"];
+      }else{
+        o.breakTimes = ["0100","0400"];
+      }
+    }
   });
-  render();
 }
 
-function addRO(){
-  let name=document.getElementById("roName").value;
-  let time=document.getElementById("roTime").value.replace(":","");
-  officers.forEach(o=>{
-    if(o.name===name) o.end=time;
-  });
-  render();
+function addRA_RO(){
+  let name = document.getElementById("raName").value;
+  let time = document.getElementById("raTime").value;
+  let type = document.getElementById("raType").value;
+
+  ra_ro_list.push({name,time,type});
+  adjustForRA_RO();
+  renderGrid();
 }
 
-function addOT(){
-  let count=parseInt(document.getElementById("otCount").value);
-  let block=document.getElementById("otBlock").value;
-  let parts=block.split("-");
+function adjustForRA_RO(){
+  ra_ro_list.forEach(r=>{
+    let o = officers.find(x=>x.name===r.name);
+    if(!o) return;
+
+    if(r.type==="RA"){
+      o.start = r.time;
+    }
+    if(r.type==="RO"){
+      o.end = minus30(r.time);
+    }
+  });
+}
+
+function minus30(time){
+  let h=parseInt(time.slice(0,2));
+  let m=parseInt(time.slice(2));
+  m-=30;
+  if(m<0){ m+=60; h--; }
+  return String(h).padStart(2,'0')+String(m).padStart(2,'0');
+}
+
+function addExtra(){
+  let type=document.getElementById("extraType").value;
+  let start=document.getElementById("extraStart").value;
+  let end=document.getElementById("extraEnd").value;
+  let count=parseInt(document.getElementById("extraCount").value);
+
   for(let i=0;i<count;i++){
     officers.push({
-      name:"OT"+(i+1),
-      start:parts[0],
-      end:parts[1],
-      type:"ot"
-    });
-  }
-  render();
-}
-
-function addSOS(){
-  let count=parseInt(document.getElementById("sosCount").value);
-  let start=document.getElementById("sosStart").value.replace(":","");
-  let end=document.getElementById("sosEnd").value.replace(":","");
-  for(let i=0;i<count;i++){
-    officers.push({
-      name:"SOS"+(i+1),
+      name:type+i+Date.now(),
+      type:type,
       start:start,
-      end:end,
-      type:"sos"
+      end:adjustRelease(type,start,end),
+      breakTimes:getOTBreaks(type,start)
     });
   }
-  render();
+
+  renderGrid();
 }
 
-function render(){
-  renderSummary();
-  renderOfficers();
+function adjustRelease(type,start,end){
+  if(type==="OT"){
+    if(start==="1600") return "2030";
+    if(start==="1100") return "1530";
+    if(start==="0600") return "1030";
+  }
+  return end;
 }
 
-function renderSummary(){
+function getOTBreaks(type,start){
+  if(type!=="OT") return [];
+  if(start==="1100") return ["1230","1315","1400"];
+  if(start==="1600") return ["1730","1815","1900"];
+  if(start==="0600") return ["0730","0815","0900"];
+  return [];
+}
+
+function renderGrid(){
+  let grid=document.getElementById("grid");
+  grid.innerHTML="";
   let shift=document.getElementById("shift").value;
-  let slots=generateTimeSlots(shift);
-  let summary="";
-  slots.forEach(t=>{
-    summary+=t+": "+officers.length+"/01\n";
-    summary+="5/5/5/5\n\n";
+  let times=generateTimeline(shift);
+
+  officers.forEach(o=>{
+    let row=document.createElement("div");
+    row.innerHTML=o.name+" ";
+
+    times.forEach(t=>{
+      let cell=document.createElement("div");
+      cell.classList.add("cell");
+
+      if(isWorking(o,t)){
+        cell.classList.add("zone1");
+      }else{
+        cell.classList.add("empty");
+      }
+
+      if(o.breakTimes.includes(t)){
+        cell.classList.add("break");
+      }
+
+      row.appendChild(cell);
+    });
+
+    grid.appendChild(row);
   });
-  document.getElementById("summary").textContent=summary;
 }
 
-function renderOfficers(){
-  let text="";
-  officers.forEach(o=>{
-    text+=o.name+" ("+o.type+") ";
-    if(o.start) text+=" RA:"+o.start;
-    if(o.end) text+=" RO:"+o.end;
-    text+="\n";
-  });
-  document.getElementById("officerRoster").textContent=text;
+function isWorking(o,time){
+  return time>=o.start && time<o.end;
 }
 
 function searchOfficer(){
-  let q=document.getElementById("searchBox").value.toLowerCase();
-  let text="";
-  officers.filter(o=>o.name.toLowerCase().includes(q))
-          .forEach(o=>text+=o.name+"\n");
-  document.getElementById("officerRoster").textContent=text;
+  let name=document.getElementById("searchName").value;
+  let o=officers.find(x=>x.name===name);
+  let view=document.getElementById("officerView");
+  if(!o){ view.textContent="Not found"; return;}
+  view.textContent=JSON.stringify(o,null,2);
 }
-
