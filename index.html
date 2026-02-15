@@ -3,40 +3,84 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>ICA Production Roster</title>
+    <title>ICA Production Roster v2</title>
     <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
 
-    <h1>ICA Counter Manning System</h1>
+    <h1>ICA Counter Manning System (Production)</h1>
 
     <div class="controls">
-        <label>Operation:</label>
+
         <select id="operation">
             <option value="arrival">Arrival</option>
             <option value="departure">Departure</option>
         </select>
 
-        <label>Shift:</label>
         <select id="shift">
             <option value="morning">Morning</option>
             <option value="night">Night</option>
         </select>
 
-        <label>Total Officers:</label>
-        <input type="number" id="officers" value="20" />
+        Officers:
+        <input type="number" id="baseOfficers" value="20" />
 
-        <button onclick="generateRoster()">Generate</button>
+        <button onclick="generateBaseRoster()">Generate Base</button>
+
     </div>
 
-    <h2>Counter Grid</h2>
-    <div id="counterGrid"></div>
+    <hr>
 
-    <h2>Manning Summary</h2>
-    <pre id="summary"></pre>
+    <h2>RA / RO</h2>
+    Name:
+    <input id="raName" />
+    Time:
+    <input id="raTime" placeholder="HHMM" />
+    <select id="raType">
+        <option value="RA">RA</option>
+        <option value="RO">RO</option>
+    </select>
+    <button onclick="addRA_RO()">Add</button>
+
+    <hr>
+
+    <h2>OT / SOS</h2>
+    Type:
+    <select id="extraType">
+        <option value="OT">OT</option>
+        <option value="SOS">SOS</option>
+    </select>
+
+    Start:
+    <input id="extraStart" placeholder="HHMM" />
+
+    End:
+    <input id="extraEnd" placeholder="HHMM" />
+
+    Count:
+    <input type="number" id="extraCount" />
+
+    <button onclick="addExtra()">Add</button>
+
+    <hr>
+
+    <h2>Search Officer</h2>
+    <input id="searchName" />
+    <button onclick="searchOfficer()">Search</button>
+
+    <hr>
+
+    <h2>Counter Grid</h2>
+    <div id="grid"></div>
+
+    <hr>
+
+    <h2>Officer Timeline</h2>
+    <pre id="officerView"></pre>
 
     <script src="app.js"></script>
+
 </body>
 
 </html>
