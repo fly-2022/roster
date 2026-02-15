@@ -1,74 +1,121 @@
-function generateRoster() {
-    const operation = document.getElementById("operation").value;
-    const shift = document.getElementById("shift").value;
-    const totalOfficers = parseInt(document.getElementById("officers").value);
+let officers = [];
+let extraOfficers = [];
 
-    let maxCounters = operation === "arrival" ? 40 : 36;
-
-    if (totalOfficers > maxCounters) {
-        alert("ERROR: Exceeds max counters by " + (totalOfficers - maxCounters));
-        return;
-    }
-
-    let perZone = Math.floor(totalOfficers / 4);
-    let remainder = totalOfficers % 4;
-
-    let zones = [perZone, perZone, perZone, perZone];
-
-    for (let i = 3; i >= 0 && remainder > 0; i--) {
-        zones[i]++;
-        remainder--;
-    }
-
-    renderGrid(zones, operation);
-    renderSummary(zones, totalOfficers, shift);
+function generateTimeSlots(shift){
+  let slots=[];
+  let start = shift==="morning" ? 600 : 1320;
+  for(let i=0;i<48;i++){
+    let total = start + i*15;
+    total = total % 1440;
+    let h = String(Math.floor(total/60)).padStart(2,"0");
+    let m = String(total%60).padStart(2,"0");
+    slots.push(h+m);
+  }
+  return slots;
 }
 
-function renderGrid(zones, operation) {
-    const grid = document.getElementById("counterGrid");
-    grid.innerHTML = "";
+function generateBase(){
+  officers=[];
+  let count = parseInt(document.getElementById("baseOfficers").value);
+  let operation=document.getElementById("operation").value;
+  let max = operation==="arrival"?40:36;
 
-    const zoneColors = ["zone1", "zone2", "zone3", "zone4"];
-    const zoneMax = operation === "arrival" ? 10 : [8, 10, 10, 8];
+  if(count>max){
+    alert("Exceed max counters by "+(count-max));
+    return;
+  }
 
-    for (let z = 0; z < 4; z++) {
-        let max = Array.isArray(zoneMax) ? zoneMax[z] : zoneMax;
-
-        for (let c = 1; c <= max; c++) {
-            const div = document.createElement("div");
-            div.classList.add("counter");
-
-            if (c <= zones[z]) {
-                div.classList.add(zoneColors[z]);
-                div.innerText = `Z${z + 1}-${c}`;
-            } else {
-                div.classList.add("closed");
-                div.innerText = "";
-            }
-
-            grid.appendChild(div);
-        }
-    }
-}
-
-function renderSummary(zones, total, shift) {
-    const summary = document.getElementById("summary");
-
-    let times = [];
-    let start = shift === "morning" ? 10 : 22;
-
-    for (let i = 0; i < 24; i++) {
-        let hour = (start + Math.floor(i / 2)) % 24;
-        let min = i % 2 === 0 ? "00" : "30";
-        times.push(String(hour).padStart(2, "0") + min);
-    }
-
-    let output = shift.toUpperCase() + " SHIFT\n\n";
-
-    times.forEach(t => {
-        output += `${t}: ${total}/01\n`;
-        output += `${zones[0]}/${zones[1]}/${zones[2]}/${zones[3]}\n\n`;
+  for(let i=1;i<=count;i++){
+    officers.push({
+      name:"Officer"+i,
+      start:null,
+      end:null,
+      type:"base"
     });
+  }
 
-    summary.textContent = output;
+  render();
+}
+
+function addRA(){
+  let name=document.getElementById("raName").value;
+  let time=document.getElementById("raTime").value.replace(":","");
+  officers.forEach(o=>{
+    if(o.name===name) o.start=time;
+  });
+  render();
+}
+
+function addRO(){
+  let name=document.getElementById("roName").value;
+  let time=document.getElementById("roTime").value.replace(":","");
+  officers.forEach(o=>{
+    if(o.name===name) o.end=time;
+  });
+  render();
+}
+
+function addOT(){
+  let count=parseInt(document.getElementById("otCount").value);
+  let block=document.getElementById("otBlock").value;
+  let parts=block.split("-");
+  for(let i=0;i<count;i++){
+    officers.push({
+      name:"OT"+(i+1),
+      start:parts[0],
+      end:parts[1],
+      type:"ot"
+    });
+  }
+  render();
+}
+
+function addSOS(){
+  let count=parseInt(document.getElementById("sosCount").value);
+  let start=document.getElementById("sosStart").value.replace(":","");
+  let end=document.getElementById("sosEnd").value.replace(":","");
+  for(let i=0;i<count;i++){
+    officers.push({
+      name:"SOS"+(i+1),
+      start:start,
+      end:end,
+      type:"sos"
+    });
+  }
+  render();
+}
+
+function render(){
+  renderSummary();
+  renderOfficers();
+}
+
+function renderSummary(){
+  let shift=document.getElementById("shift").value;
+  let slots=generateTimeSlots(shift);
+  let summary="";
+  slots.forEach(t=>{
+    summary+=t+": "+officers.length+"/01\n";
+    summary+="5/5/5/5\n\n";
+  });
+  document.getElementById("summary").textContent=summary;
+}
+
+function renderOfficers(){
+  let text="";
+  officers.forEach(o=>{
+    text+=o.name+" ("+o.type+") ";
+    if(o.start) text+=" RA:"+o.start;
+    if(o.end) text+=" RO:"+o.end;
+    text+="\n";
+  });
+  document.getElementById("officerRoster").textContent=text;
+}
+
+function searchOfficer(){
+  let q=document.getElementById("searchBox").value.toLowerCase();
+  let text="";
+  officers.filter(o=>o.name.toLowerCase().includes(q))
+          .forEach(o=>text+=o.name+"\n");
+  document.getElementById("officerRoster").textContent=text;
 }
