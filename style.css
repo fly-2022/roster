@@ -1,0 +1,48 @@
+body {
+    font-family: Arial;
+    padding: 20px;
+}
+
+.controls {
+    margin-bottom: 20px;
+}
+
+#counterGrid {
+    display: grid;
+    grid-template-columns: repeat(10, 60px);
+    gap: 5px;
+    margin-bottom: 20px;
+}
+
+.counter {
+    height: 40px;
+    border-radius: 4px;
+    text-align: center;
+    line-height: 40px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.zone1 {
+    background: #4CAF50;
+    color: white;
+}
+
+.zone2 {
+    background: #2196F3;
+    color: white;
+}
+
+.zone3 {
+    background: #FF9800;
+    color: white;
+}
+
+.zone4 {
+    background: #9C27B0;
+    color: white;
+}
+
+.closed {
+    background: #ddd;
+}
